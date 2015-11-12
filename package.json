@@ -1,0 +1,24 @@
+{
+  "name": "d3-geo-raster",
+  "version": "1.0.0",
+  "description": "",
+  "main": "d3.geo.raster.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/metocean/d3-geo-raster.git"
+  },
+  "keywords": [
+    "d3",
+    "geo",
+    "reprojection"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/metocean/d3-geo-raster/issues"
+  },
+  "homepage": "https://github.com/metocean/d3-geo-raster#readme"
+}
