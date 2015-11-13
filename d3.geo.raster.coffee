@@ -1,4 +1,4 @@
-quadTiles = require 'd3.quadTiles'
+quadTiles = require 'd3-quadTiles'
 
 # Copyright 2014, Jason Davies, http://www.jasondavies.com/
 
