@@ -20,6 +20,7 @@
   "bugs": {
     "url": "https://github.com/metocean/d3-geo-raster/issues"
   },
+  "readmeFilename": "README.md",
   "homepage": "https://github.com/metocean/d3-geo-raster#readme",
   "dependencies": {
     "d3-quadtiles": "1.0.0"

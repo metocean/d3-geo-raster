@@ -37,7 +37,6 @@ urlTemplate = (s) ->
       if v != null then v else d == 'quadkey' and quadkey(o.x, o.y, o.z)
 
 quadkey = (column, row, zoom) ->
-  `var key`
   key = []
   while i <= zoom
     key.push (row >> zoom - i & 1) << 1 | column >> zoom - i & 1
@@ -53,15 +52,28 @@ module.exports = d3.geo.raster = (projection) ->
   reprojectDispatch = d3.dispatch 'reprojectcomplete'
   imgCanvas = document.createElement 'canvas'
   imgContext = imgCanvas.getContext '2d'
+  tileMax = 10
 
   redraw = (layer) ->
-    # TODO improve zoom level computation
-    z = Math.max(scaleExtent[0], Math.min(scaleExtent[1], (Math.log(projection.scale()) / Math.LN2 | 0) - 6))
+    # console.log "Testing zoom levels from #{scaleExtent[0]} to #{scaleExtent[1]}"
+    # console.time 'Compute ideal zoom'
+    z = scaleExtent[0]
+    tiles = quadTiles projection, z
+    for ztest in [(scaleExtent[0] + 1)..scaleExtent[1]]
+      testTiles = quadTiles projection, ztest
+      if testTiles.length is 0 or testTiles.length > tileMax
+        #console.log "#{testTiles.length} tiles at zoom level #{ztest}"
+        break
+      z = ztest
+      tiles = testTiles
+    # console.timeEnd 'Compute ideal zoom'
+    # console.log "#{tiles.length} tiles to render at zoom level #{z}"
+
     pot = z + 6
     ds = projection.scale() / Math.pow 2, pot
     t = projection.translate()
     layer.style prefix + 'transform', 'translate(' + t.map(pixel) + ')scale(' + ds + ')'
-    tile = layer.selectAll('.tile').data(quadTiles(projection, z), key)
+    tile = layer.selectAll('.tile').data tiles, key
     tile.enter()
       .append('canvas')
       .attr('class', 'tile')
@@ -71,8 +83,7 @@ module.exports = d3.geo.raster = (projection) ->
         k = d.key
         image.crossOrigin = true
 
-        image.onload = ->
-          setTimeout (-> onload d, canvas, pot), 1
+        image.onload = -> setTimeout (-> onload d, canvas, pot), 1
 
         y = k[1]
         y = 2 ** z - y - 1 if tms
@@ -171,6 +182,11 @@ module.exports = d3.geo.raster = (projection) ->
   redraw.subdomains = (_) ->
     return subdomains unless arguments.length
     subdomains = _
+    redraw
+
+  redraw.tileMax = (_) ->
+    return tileMax unless arguments.length
+    tileMax = _
     redraw
 
   d3.rebind redraw, reprojectDispatch, 'on'

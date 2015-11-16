@@ -61,7 +61,6 @@ urlTemplate = function(s) {
 };
 
 quadkey = function(column, row, zoom) {
-  var key;
   key = [];
   while (i <= zoom) {
     key.push((row >> zoom - i & 1) << 1 | column >> zoom - i & 1);
@@ -71,7 +70,7 @@ quadkey = function(column, row, zoom) {
 };
 
 module.exports = d3.geo.raster = function(projection) {
-  var imgCanvas, imgContext, onload, path, redraw, reprojectDispatch, scaleExtent, subdomains, tms, url;
+  var imgCanvas, imgContext, onload, path, redraw, reprojectDispatch, scaleExtent, subdomains, tileMax, tms, url;
   path = d3.geo.path().projection(projection);
   url = null;
   scaleExtent = [0, Infinity];
@@ -80,14 +79,24 @@ module.exports = d3.geo.raster = function(projection) {
   reprojectDispatch = d3.dispatch('reprojectcomplete');
   imgCanvas = document.createElement('canvas');
   imgContext = imgCanvas.getContext('2d');
+  tileMax = 10;
   redraw = function(layer) {
-    var ds, pot, t, tile, z;
-    z = Math.max(scaleExtent[0], Math.min(scaleExtent[1], (Math.log(projection.scale()) / Math.LN2 | 0) - 6));
+    var ds, j, pot, ref, ref1, t, testTiles, tile, tiles, z, ztest;
+    z = scaleExtent[0];
+    tiles = quadTiles(projection, z);
+    for (ztest = j = ref = scaleExtent[0] + 1, ref1 = scaleExtent[1]; ref <= ref1 ? j <= ref1 : j >= ref1; ztest = ref <= ref1 ? ++j : --j) {
+      testTiles = quadTiles(projection, ztest);
+      if (testTiles.length === 0 || testTiles.length > tileMax) {
+        break;
+      }
+      z = ztest;
+      tiles = testTiles;
+    }
     pot = z + 6;
     ds = projection.scale() / Math.pow(2, pot);
     t = projection.translate();
     layer.style(prefix + 'transform', 'translate(' + t.map(pixel) + ')scale(' + ds + ')');
-    tile = layer.selectAll('.tile').data(quadTiles(projection, z), key);
+    tile = layer.selectAll('.tile').data(tiles, key);
     tile.enter().append('canvas').attr('class', 'tile').each(function(d) {
       var canvas, image, k, y;
       canvas = this;
@@ -211,6 +220,13 @@ module.exports = d3.geo.raster = function(projection) {
       return subdomains;
     }
     subdomains = _;
+    return redraw;
+  };
+  redraw.tileMax = function(_) {
+    if (!arguments.length) {
+      return tileMax;
+    }
+    tileMax = _;
     return redraw;
   };
   d3.rebind(redraw, reprojectDispatch, 'on');
