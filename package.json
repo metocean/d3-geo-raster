@@ -1,6 +1,6 @@
 {
   "name": "d3-geo-raster",
-  "version": "1.0.2",
+  "version": "1.1.0",
   "description": "",
   "main": "d3.geo.raster.js",
   "scripts": {
