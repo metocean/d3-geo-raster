@@ -52,22 +52,12 @@ module.exports = d3.geo.raster = (projection) ->
   reprojectDispatch = d3.dispatch 'reprojectcomplete'
   imgCanvas = document.createElement 'canvas'
   imgContext = imgCanvas.getContext '2d'
-  tileMax = 10
+  maxtiles = 10
 
   redraw = (layer) ->
-    # console.log "Testing zoom levels from #{scaleExtent[0]} to #{scaleExtent[1]}"
-    # console.time 'Compute ideal zoom'
-    z = scaleExtent[0]
-    tiles = quadTiles projection, z
-    for ztest in [(scaleExtent[0] + 1)..scaleExtent[1]]
-      testTiles = quadTiles projection, ztest
-      if testTiles.length is 0 or testTiles.length > tileMax
-        #console.log "#{testTiles.length} tiles at zoom level #{ztest}"
-        break
-      z = ztest
-      tiles = testTiles
-    # console.timeEnd 'Compute ideal zoom'
-    # console.log "#{tiles.length} tiles to render at zoom level #{z}"
+    {zoom, tiles} = quadTiles projection,
+      maxtiles: maxtiles
+      maxzoom: scaleExtent[1]
 
     pot = z + 6
     ds = projection.scale() / Math.pow 2, pot
@@ -184,9 +174,9 @@ module.exports = d3.geo.raster = (projection) ->
     subdomains = _
     redraw
 
-  redraw.tileMax = (_) ->
-    return tileMax unless arguments.length
-    tileMax = _
+  redraw.maxtiles = (_) ->
+    return maxtiles unless arguments.length
+    maxtiles = _
     redraw
 
   d3.rebind redraw, reprojectDispatch, 'on'

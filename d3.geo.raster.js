@@ -70,7 +70,7 @@ quadkey = function(column, row, zoom) {
 };
 
 module.exports = d3.geo.raster = function(projection) {
-  var imgCanvas, imgContext, onload, path, redraw, reprojectDispatch, scaleExtent, subdomains, tileMax, tms, url;
+  var imgCanvas, imgContext, maxtiles, onload, path, redraw, reprojectDispatch, scaleExtent, subdomains, tms, url;
   path = d3.geo.path().projection(projection);
   url = null;
   scaleExtent = [0, Infinity];
@@ -79,19 +79,13 @@ module.exports = d3.geo.raster = function(projection) {
   reprojectDispatch = d3.dispatch('reprojectcomplete');
   imgCanvas = document.createElement('canvas');
   imgContext = imgCanvas.getContext('2d');
-  tileMax = 10;
+  maxtiles = 10;
   redraw = function(layer) {
-    var ds, j, pot, ref, ref1, t, testTiles, tile, tiles, z, ztest;
-    z = scaleExtent[0];
-    tiles = quadTiles(projection, z);
-    for (ztest = j = ref = scaleExtent[0] + 1, ref1 = scaleExtent[1]; ref <= ref1 ? j <= ref1 : j >= ref1; ztest = ref <= ref1 ? ++j : --j) {
-      testTiles = quadTiles(projection, ztest);
-      if (testTiles.length === 0 || testTiles.length > tileMax) {
-        break;
-      }
-      z = ztest;
-      tiles = testTiles;
-    }
+    var ds, pot, ref, t, tile, tiles, zoom;
+    ref = quadTiles(projection, {
+      maxtiles: maxtiles,
+      maxzoom: scaleExtent[1]
+    }), zoom = ref.zoom, tiles = ref.tiles;
     pot = z + 6;
     ds = projection.scale() / Math.pow(2, pot);
     t = projection.translate();
@@ -222,11 +216,11 @@ module.exports = d3.geo.raster = function(projection) {
     subdomains = _;
     return redraw;
   };
-  redraw.tileMax = function(_) {
+  redraw.maxtiles = function(_) {
     if (!arguments.length) {
-      return tileMax;
+      return maxtiles;
     }
-    tileMax = _;
+    maxtiles = _;
     return redraw;
   };
   d3.rebind(redraw, reprojectDispatch, 'on');
