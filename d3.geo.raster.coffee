@@ -1,5 +1,3 @@
-quadTiles = require 'd3-quadTiles'
-
 # Copyright 2014, Jason Davies, http://www.jasondavies.com/
 
 prefixMatch = (p) ->
@@ -43,8 +41,8 @@ quadkey = (column, row, zoom) ->
     i++
   key.join ''
 
-module.exports = d3.geo.raster = (projection) ->
-  path = d3.geo.path().projection(projection)
+module.exports = d3.geo.raster = (projection, tiles, zoom) ->
+  path = d3.geo.path().projection projection
   url = null
   scaleExtent = [0, Infinity]
   subdomains = ['a', 'b', 'c', 'd']
@@ -52,14 +50,9 @@ module.exports = d3.geo.raster = (projection) ->
   reprojectDispatch = d3.dispatch 'reprojectcomplete'
   imgCanvas = document.createElement 'canvas'
   imgContext = imgCanvas.getContext '2d'
-  maxtiles = 10
 
   redraw = (layer) ->
-    {zoom, tiles} = quadTiles projection,
-      maxtiles: maxtiles
-      maxzoom: scaleExtent[1]
-
-    pot = z + 6
+    pot = zoom + 6
     ds = projection.scale() / Math.pow 2, pot
     t = projection.translate()
     layer.style prefix + 'transform', 'translate(' + t.map(pixel) + ')scale(' + ds + ')'
@@ -76,7 +69,7 @@ module.exports = d3.geo.raster = (projection) ->
         image.onload = -> setTimeout (-> onload d, canvas, pot), 1
 
         y = k[1]
-        y = 2 ** z - y - 1 if tms
+        y = 2 ** zoom - y - 1 if tms
         image.src = url
           x: k[0]
           y: y
@@ -118,9 +111,8 @@ module.exports = d3.geo.raster = (projection) ->
       sourceData = imgContext.getImageData(0, 0, dx, dy).data
       target = context.createImageData(width, height)
       targetData = target.data
-      interpolate = bilinear((x, y, offset) ->
+      interpolate = bilinear (x, y, offset) ->
         sourceData[(y * dx + x) * 4 + offset]
-      )
       y = y0
       i = -1
       while y < y1
@@ -172,11 +164,6 @@ module.exports = d3.geo.raster = (projection) ->
   redraw.subdomains = (_) ->
     return subdomains unless arguments.length
     subdomains = _
-    redraw
-
-  redraw.maxtiles = (_) ->
-    return maxtiles unless arguments.length
-    maxtiles = _
     redraw
 
   d3.rebind redraw, reprojectDispatch, 'on'
