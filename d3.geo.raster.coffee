@@ -57,27 +57,26 @@ module.exports = d3.geo.raster = (projection, tiles, zoom) ->
     t = projection.translate()
     layer.style prefix + 'transform', 'translate(' + t.map(pixel) + ')scale(' + ds + ')'
     tile = layer.selectAll('.tile').data tiles, key
+    buildtile = (d) ->
+      canvas = this
+      image = d.image = new Image
+      k = d.key
+      image.crossOrigin = true
+
+      image.onload = -> setTimeout (-> onload d, canvas, pot), 1
+
+      y = k[1]
+      y = 2 ** zoom - y - 1 if tms
+      image.src = url
+        x: k[0]
+        y: y
+        z: k[2]
+        subdomain: subdomains[(k[0] * 31 + k[1]) % subdomains.length]
+    tile.each buildtile
     tile.enter()
-      .append('canvas')
-      .attr('class', 'tile')
-      .each((d) ->
-        canvas = this
-        image = d.image = new Image
-        k = d.key
-        image.crossOrigin = true
-
-        image.onload = -> setTimeout (-> onload d, canvas, pot), 1
-
-        y = k[1]
-        y = 2 ** zoom - y - 1 if tms
-        image.src = url
-          x: k[0]
-          y: y
-          z: k[2]
-          subdomain: subdomains[(k[0] * 31 + k[1]) % subdomains.length]
-      )
-      .transition().delay(500).each 'end', ->
-        reprojectDispatch.reprojectcomplete()
+      .append 'canvas'
+      .attr 'class', 'tile'
+      .each buildtile
     tile.exit().remove()
 
   onload = (d, canvas, pot) ->

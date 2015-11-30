@@ -78,13 +78,13 @@ module.exports = d3.geo.raster = function(projection, tiles, zoom) {
   imgCanvas = document.createElement('canvas');
   imgContext = imgCanvas.getContext('2d');
   redraw = function(layer) {
-    var ds, pot, t, tile;
+    var buildtile, ds, pot, t, tile;
     pot = zoom + 6;
     ds = projection.scale() / Math.pow(2, pot);
     t = projection.translate();
     layer.style(prefix + 'transform', 'translate(' + t.map(pixel) + ')scale(' + ds + ')');
     tile = layer.selectAll('.tile').data(tiles, key);
-    tile.enter().append('canvas').attr('class', 'tile').each(function(d) {
+    buildtile = function(d) {
       var canvas, image, k, y;
       canvas = this;
       image = d.image = new Image;
@@ -105,9 +105,9 @@ module.exports = d3.geo.raster = function(projection, tiles, zoom) {
         z: k[2],
         subdomain: subdomains[(k[0] * 31 + k[1]) % subdomains.length]
       });
-    }).transition().delay(500).each('end', function() {
-      return reprojectDispatch.reprojectcomplete();
-    });
+    };
+    tile.each(buildtile);
+    tile.enter().append('canvas').attr('class', 'tile').each(buildtile);
     return tile.exit().remove();
   };
   onload = function(d, canvas, pot) {
