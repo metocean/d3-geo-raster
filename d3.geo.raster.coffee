@@ -18,21 +18,24 @@ mercatorPhi = (y) -> Math.atan(Math.exp(-y * Math.PI / 180)) * 360 / Math.PI - 9
 mercatorPhi.invert = (Phi) ->
   -Math.log(Math.tan(Math.PI * .25 + Phi * Math.PI / 360)) * 180 / Math.PI
 
-bilinear = (f) ->
-  (x, y, o) ->
-    x0 = Math.floor(x)
-    y0 = Math.floor(y)
-    x1 = Math.ceil(x)
-    y1 = Math.ceil(y)
-    if x0 == x1 or y0 == y1
-      return f(x0, y0, o)
-    (f(x0, y0, o) * (x1 - x) * (y1 - y) + f(x1, y0, o) * (x - x0) * (y1 - y) + f(x0, y1, o) * (x1 - x) * (y - y0) + f(x1, y1, o) * (x - x0) * (y - y0)) / ((x1 - x0) * (y1 - y0))
+# bilinear = (f) -> (x, y, o) ->
+#   x0 = Math.floor(x)
+#   y0 = Math.floor(y)
+#   x1 = Math.ceil(x)
+#   y1 = Math.ceil(y)
+#   if x0 == x1 or y0 == y1
+#     return f(x0, y0, o)
+#   (f(x0, y0, o) * (x1 - x) * (y1 - y) + f(x1, y0, o) * (x - x0) * (y1 - y) + f(x0, y1, o) * (x1 - x) * (y - y0) + f(x1, y1, o) * (x - x0) * (y - y0)) / ((x1 - x0) * (y1 - y0))
 
-urlTemplate = (s) ->
-  (o) ->
-    s.replace /\{([^\}]+)\}/g, (_, d) ->
-      v = o[d]
-      if v != null then v else d == 'quadkey' and quadkey(o.x, o.y, o.z)
+bilinear = (f) -> (x, y, o) ->
+  x = Math.round x
+  y = Math.round y
+  f x, y, o
+
+urlTemplate = (s) -> (o) ->
+  s.replace /\{([^\}]+)\}/g, (_, d) ->
+    v = o[d]
+    if v != null then v else d == 'quadkey' and quadkey(o.x, o.y, o.z)
 
 quadkey = (column, row, zoom) ->
   key = []
@@ -47,7 +50,6 @@ module.exports = d3.geo.raster = (projection, tiles, zoom) ->
   scaleExtent = [0, Infinity]
   subdomains = ['a', 'b', 'c', 'd']
   tms = false
-  reprojectDispatch = d3.dispatch 'reprojectcomplete'
   imgCanvas = document.createElement 'canvas'
   imgContext = imgCanvas.getContext '2d'
 
@@ -63,6 +65,7 @@ module.exports = d3.geo.raster = (projection, tiles, zoom) ->
       k = d.key
       image.crossOrigin = true
 
+      console.time JSON.stringify(d.key)+'.load'
       image.onload = -> setTimeout (-> onload d, canvas, pot), 1
 
       y = k[1]
@@ -80,6 +83,8 @@ module.exports = d3.geo.raster = (projection, tiles, zoom) ->
     tile.exit().remove()
 
   onload = (d, canvas, pot) ->
+    console.timeEnd JSON.stringify(d.key)+'.load'
+    console.time JSON.stringify(d.key)+'.project'
     t = projection.translate()
     s = projection.scale()
     c = projection.clipExtent()
@@ -144,6 +149,7 @@ module.exports = d3.geo.raster = (projection, tiles, zoom) ->
       .style('left', x0 + 'px')
       .style 'top', y0 + 'px'
     projection.translate(t).scale(s).clipExtent c
+    console.timeEnd JSON.stringify(d.key)+'.project'
 
   redraw.url = (_) ->
     return url unless arguments.length
@@ -165,7 +171,6 @@ module.exports = d3.geo.raster = (projection, tiles, zoom) ->
     subdomains = _
     redraw
 
-  d3.rebind redraw, reprojectDispatch, 'on'
   redraw
 
 module.exports.prefix = prefix

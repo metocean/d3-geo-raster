@@ -32,15 +32,9 @@ mercatorPhi.invert = function(Phi) {
 
 bilinear = function(f) {
   return function(x, y, o) {
-    var x0, x1, y0, y1;
-    x0 = Math.floor(x);
-    y0 = Math.floor(y);
-    x1 = Math.ceil(x);
-    y1 = Math.ceil(y);
-    if (x0 === x1 || y0 === y1) {
-      return f(x0, y0, o);
-    }
-    return (f(x0, y0, o) * (x1 - x) * (y1 - y) + f(x1, y0, o) * (x - x0) * (y1 - y) + f(x0, y1, o) * (x1 - x) * (y - y0) + f(x1, y1, o) * (x - x0) * (y - y0)) / ((x1 - x0) * (y1 - y0));
+    x = Math.round(x);
+    y = Math.round(y);
+    return f(x, y, o);
   };
 };
 
@@ -68,13 +62,12 @@ quadkey = function(column, row, zoom) {
 };
 
 module.exports = d3.geo.raster = function(projection, tiles, zoom) {
-  var imgCanvas, imgContext, onload, path, redraw, reprojectDispatch, scaleExtent, subdomains, tms, url;
+  var imgCanvas, imgContext, onload, path, redraw, scaleExtent, subdomains, tms, url;
   path = d3.geo.path().projection(projection);
   url = null;
   scaleExtent = [0, Infinity];
   subdomains = ['a', 'b', 'c', 'd'];
   tms = false;
-  reprojectDispatch = d3.dispatch('reprojectcomplete');
   imgCanvas = document.createElement('canvas');
   imgContext = imgCanvas.getContext('2d');
   redraw = function(layer) {
@@ -90,6 +83,7 @@ module.exports = d3.geo.raster = function(projection, tiles, zoom) {
       image = d.image = new Image;
       k = d.key;
       image.crossOrigin = true;
+      console.time(JSON.stringify(d.key) + '.load');
       image.onload = function() {
         return setTimeout((function() {
           return onload(d, canvas, pot);
@@ -112,6 +106,8 @@ module.exports = d3.geo.raster = function(projection, tiles, zoom) {
   };
   onload = function(d, canvas, pot) {
     var Lambda, Lambda0, Lambda1, Phi, Phi0, Phi1, bounds, c, context, dx, dy, height, i, image, interpolate, k, mPhi0, mPhi1, p, q, s, sourceData, sx, sy, t, target, targetData, width, x, x0, x1, y, y0, y1;
+    console.timeEnd(JSON.stringify(d.key) + '.load');
+    console.time(JSON.stringify(d.key) + '.project');
     t = projection.translate();
     s = projection.scale();
     c = projection.clipExtent();
@@ -179,7 +175,8 @@ module.exports = d3.geo.raster = function(projection, tiles, zoom) {
       context.putImageData(target, 0, 0);
     }
     d3.selectAll([canvas]).style('left', x0 + 'px').style('top', y0 + 'px');
-    return projection.translate(t).scale(s).clipExtent(c);
+    projection.translate(t).scale(s).clipExtent(c);
+    return console.timeEnd(JSON.stringify(d.key) + '.project');
   };
   redraw.url = function(_) {
     if (!arguments.length) {
@@ -209,7 +206,6 @@ module.exports = d3.geo.raster = function(projection, tiles, zoom) {
     subdomains = _;
     return redraw;
   };
-  d3.rebind(redraw, reprojectDispatch, 'on');
   return redraw;
 };
 
